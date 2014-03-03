@@ -1,6 +1,6 @@
 BOOST_INC_DIR = []
 BOOST_LIB_DIR = []
-BOOST_COMPILER = 'gcc43'
+BOOST_COMPILER = 'msvc'
 USE_SHIPPED_BOOST = True
 BOOST_PYTHON_LIBNAME = ['boost_python-py27']
 BOOST_THREAD_LIBNAME = ['boost_thread']
@@ -14,5 +14,5 @@ CUDART_LIB_DIR = ['${CUDA_ROOT}/lib', '${CUDA_ROOT}/lib/x64']
 CUDART_LIBNAME = ['cudart']
 CURAND_LIB_DIR = ['${CUDA_ROOT}/lib', '${CUDA_ROOT}/lib/x64']
 CURAND_LIBNAME = ['curand']
-CXXFLAGS = ['-DBOOST_NO_TYPEID']
+CXXFLAGS = ['/EHsc']
 LDFLAGS = []
