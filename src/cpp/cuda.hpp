@@ -452,6 +452,7 @@ namespace pycuda
   inline
   void init(unsigned int flags)
   {
+    printf("PyCUDA: cuInit()\n");
     CUDAPP_CALL_GUARDED(cuInit, (flags));
   }
 
@@ -583,6 +584,7 @@ namespace pycuda
       static boost::shared_ptr<context> attach(unsigned int flags)
       {
         CUcontext current;
+        printf("PyCUDA: cuCtxAttach()\n");
         CUDAPP_CALL_GUARDED(cuCtxAttach, (&current, flags));
         boost::shared_ptr<context> result(new context(current));
         context_stack::get().push(result);
@@ -596,13 +598,16 @@ namespace pycuda
           bool active_before_destruction = current_context().get() == this;
           if (active_before_destruction)
           {
+            printf("PyCUDA: cuCtxDetach()\n");
             CUDAPP_CALL_GUARDED_CLEANUP(cuCtxDetach, (m_context));
           }
           else
           {
             if (m_thread == boost::this_thread::get_id())
             {
+              printf("PyCUDA: cuCtxPushCurrent()\n");
               CUDAPP_CALL_GUARDED_CLEANUP(cuCtxPushCurrent, (m_context));
+              printf("PyCUDA: cuCtxDetach()\n");
               CUDAPP_CALL_GUARDED_CLEANUP(cuCtxDetach, (m_context));
               /* pop is implicit in detach */
             }
@@ -623,6 +628,7 @@ namespace pycuda
             boost::shared_ptr<context> new_active = current_context(this);
             if (new_active.get())
             {
+              printf("PyCUDA: cuCtxPushCurrent()\n");
               CUDAPP_CALL_GUARDED(cuCtxPushCurrent, (new_active->m_context));
             }
           }
@@ -646,30 +652,42 @@ namespace pycuda
         if (!context_stack::get().empty())
         {
           CUcontext popped;
+          printf("PyCUDA: cuCtxPopCurrent()\n");
           CUDAPP_CALL_GUARDED(cuCtxPopCurrent, (&popped));
+          printf("Success\n");
         }
       }
 
       static void pop()
       {
+        printf("prepare_context_switch()\n");
         prepare_context_switch();
+        printf("context_stack::get()\n");
         context_stack &ctx_stack = context_stack::get();
 
         if (ctx_stack.empty())
         {
+          printf("ctx_stack is empty!!!\n");
           throw error("context::pop", CUDA_ERROR_INVALID_CONTEXT,
               "cannot pop non-current context");
         }
 
+        printf("current_context()\n");
         boost::shared_ptr<context> current = current_context();
         if (current)
           --current->m_use_count;
 
+        printf("ctx_stack.pop()\n");
         ctx_stack.pop();
 
+        printf("current_context()\n");
         current = current_context();
         if (current)
+        {
+          printf("PyCUDA: cuCtxPushCurrent()\n");
           CUDAPP_CALL_GUARDED(cuCtxPushCurrent, (current_context()->m_context));
+        }
+        printf("pop() finished\n");
       }
 #else
       static void prepare_context_switch() { }
@@ -773,6 +791,8 @@ namespace pycuda
   {
     context::prepare_context_switch();
 
+    printf("PyCUDA: cuCtxCreate()\n");
+
     CUcontext ctx;
     CUDAPP_CALL_GUARDED(cuCtxCreate, (&ctx, flags, m_device));
     boost::shared_ptr<context> result(new context(ctx));
@@ -792,6 +812,8 @@ namespace pycuda
   void context_push(boost::shared_ptr<context> ctx)
   {
     context::prepare_context_switch();
+
+    printf("PyCUDA: cuCtxPushCurrent()\n");
 
     CUDAPP_CALL_GUARDED(cuCtxPushCurrent, (ctx->m_context));
     context_stack::get().push(ctx);
